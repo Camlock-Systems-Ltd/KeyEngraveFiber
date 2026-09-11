@@ -1,0 +1,72 @@
+20260717 12:44:24 [I] [Transfer] ==> UsbTransfer::OpenDev:: 0
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read VERSION
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read ID
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read CRYPTO result
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read VERSION
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read FUNCTION
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read CUSTOM
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read LEVEL
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read TRIAL TO DATE
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read TRIAL KEY
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read ID
+20260717 12:44:24 [I] [Executor] ==> LmCrypto writeLog:read TRIAL REGCOUNT
+20260717 12:53:02 [I] [Transfer] ==> UsbTransfer::OpenDev:: 0
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read VERSION
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read ID
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read CRYPTO result
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read VERSION
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read FUNCTION
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read CUSTOM
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read LEVEL
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read TRIAL TO DATE
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read TRIAL KEY
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read ID
+20260717 12:53:02 [I] [Executor] ==> LmCrypto writeLog:read TRIAL REGCOUNT
+20260717 13:01:56 [E] [Transfer] ==> USBERROR [writeCmd BeginDataXfer2]:  [state=ERROR   status=UNKNOWN]
+20260717 13:01:56 [E] [Transfer] ==> Transfer WriteAndReadCmd error AA05: send seq=0 devCount=1 errCount=0
+20260717 13:01:56 [E] [Transfer] ==> USBERROR [writeCmd BeginDataXfer2]:  [state=ERROR   status=UNKNOWN]
+20260717 13:01:56 [E] [Transfer] ==> Transfer WriteAndReadCmd error AA05: send seq=0 devCount=1 errCount=1
+20260717 13:01:56 [E] [Transfer] ==> USBERROR [writeCmd BeginDataXfer2]:  [state=ERROR   status=UNKNOWN]
+20260717 13:01:56 [E] [Transfer] ==> Transfer WriteAndReadCmd error AA10: send seq=0 devCount=1 errCount=2
+20260717 13:01:56 [E] [Transfer] ==> USBERROR [writeCmd BeginDataXfer2]:  [state=ERROR   status=UNKNOWN]
+20260717 13:01:56 [E] [Transfer] ==> Transfer WriteAndReadCmd error AA10: send seq=0 devCount=1 errCount=3
+20260717 13:01:56 [I] [Transfer] ==> UsbTransfer::closeDev:: 0
+20260717 13:05:07 [I] [Transfer] ==> UsbTransfer::OpenDev:: 0
+20260717 13:05:07 [E] [Transfer] ==> USBERROR [writeCmd WaitForXfer WaitForSingleObject]: [state=SUCCESS status=USBD_STATUS_SUCCESS]
+20260717 13:05:07 [E] [Transfer] ==> Transfer WriteAndReadCmd error 0123: send seq=0 devCount=1 errCount=0
+20260717 13:05:08 [E] [Transfer] ==> USBERROR [writeCmd WaitForXfer WaitForSingleObject]: [state=SUCCESS status=USBD_STATUS_SUCCESS]
+20260717 13:05:08 [E] [Transfer] ==> Transfer WriteAndReadCmd error 0140: send seq=0 devCount=1 errCount=1
+20260717 13:05:09 [E] [Transfer] ==> USBERROR [writeCmd WaitForXfer WaitForSingleObject]: [state=SUCCESS status=USBD_STATUS_SUCCESS]
+20260717 13:05:09 [E] [Transfer] ==> Transfer WriteAndReadCmd error 0140: send seq=0 devCount=1 errCount=2
+20260717 13:05:10 [E] [Transfer] ==> USBERROR [writeCmd FinishDataXfer]: [state=SUCCESS status=USBD_STATUS_SUCCESS]
+20260717 13:05:10 [E] [Transfer] ==> Transfer WriteAndReadCmd error 0140: send seq=0 devCount=0 errCount=3
+20260717 13:05:11 [E] [Transfer] ==> USBERROR [writeCmd FinishDataXfer]: [state=SUCCESS status=USBD_STATUS_SUCCESS]
+20260717 13:05:11 [E] [Transfer] ==> Transfer WriteAndReadCmd error 0110: send seq=0 devCount=1 errCount=4
+20260717 13:05:11 [E] [Executor] ==> Abnormal board, still in factory mode during init, uMode=0
+20260717 13:05:11 [E] [Executor] ==> Card abnormality, encryption failed
+20260717 13:05:11 [E] [Transfer] ==> USBERROR [writeCmd FinishDataXfer]: [state=SUCCESS status=USBD_STATUS_SUCCESS]
+20260717 13:05:11 [E] [Transfer] ==> Transfer WriteAndReadCmd error 0104: send seq=0 devCount=1 errCount=5
+20260717 13:05:11 [E] [Transfer] ==> USBERROR [writeCmd FinishDataXfer]: [state=SUCCESS status=USBD_STATUS_SUCCESS]
+20260717 13:05:11 [E] [Transfer] ==> Transfer WriteAndReadCmd error 0101: send seq=0 devCount=1 errCount=6
+20260717 13:05:11 [I] [Transfer] ==> UsbTransfer::closeDev:: 0
+20260717 13:05:11 [I] [Transfer] ==> UsbTransfer::OpenDev:: 0
+20260717 13:05:11 [E] [Transfer] ==> Transfer::readPort NetERR check fail, NetErr:1
+20260717 13:05:11 [E] [Transfer] ==> Transfer WriteAndReadCmd head check fail, send seq=0 trysend=1 tryrecv=1
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read VERSION
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read ID
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read CRYPTO result
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read VERSION
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read FUNCTION
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read CUSTOM
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read LEVEL
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read TRIAL TO DATE
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read TRIAL KEY
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read ID
+20260717 13:05:11 [I] [Executor] ==> LmCrypto writeLog:read TRIAL REGCOUNT
+20260717 13:30:45 [E] [Transfer] ==> USBERROR [writeCmd BeginDataXfer2]:  [state=ERROR   status=UNKNOWN]
+20260717 13:30:45 [E] [Transfer] ==> Transfer WriteAndReadCmd error AA05: send seq=0 devCount=1 errCount=0
+20260717 13:30:45 [E] [Transfer] ==> USBERROR [writeCmd BeginDataXfer2]:  [state=ERROR   status=UNKNOWN]
+20260717 13:30:45 [E] [Transfer] ==> Transfer WriteAndReadCmd error AA10: send seq=0 devCount=1 errCount=1
+20260717 13:30:45 [E] [Transfer] ==> USBERROR [writeCmd BeginDataXfer2]:  [state=ERROR   status=UNKNOWN]
+20260717 13:30:45 [E] [Transfer] ==> Transfer WriteAndReadCmd error AA10: send seq=0 devCount=1 errCount=2
+20260717 13:30:45 [I] [Transfer] ==> UsbTransfer::closeDev:: 0
