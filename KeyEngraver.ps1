@@ -1,6 +1,6 @@
 # ============================================================
 #  KeyEngraver - fullscreen kiosk front-end for LightBurn
-#  Operator types a number, presses ENGRAVE. LightBurn stays hidden.
+#  Operator types a key number (digits and letters), presses ENGRAVE. LightBurn stays hidden.
 #  Talks to LightBurn via its UDP command interface (port 19840).
 # ============================================================
 
@@ -13,7 +13,7 @@ $Placeholder    = '%KEYNUM%'   # the literal text in your template that gets rep
 $LightBurnHost  = '127.0.0.1'  # PC running LightBurn (this PC)
 $UdpSendPort    = 19840        # LightBurn command port
 $UdpReplyPort   = 19841        # LightBurn reply port
-$MaxDigits      = 8            # max digits operators can type
+$MaxChars       = 8            # max characters (digits + letters) operators can type
 $ZeroPadTo      = 0            # e.g. 4 turns "37" into "0037"; 0 = disabled
 $EngraveSeconds = 8            # lockout time while the job runs (tune to your actual cycle time)
 $LoadDelayMs    = 800          # wait after FORCELOAD before START so LightBurn can render the file
@@ -92,13 +92,13 @@ $xaml = @'
         WindowStartupLocation="CenterScreen">
   <Window.Resources>
     <Style TargetType="Button" x:Key="PadBtn">
-      <Setter Property="FontSize" Value="44"/>
+      <Setter Property="FontSize" Value="34"/>
       <Setter Property="FontWeight" Value="Bold"/>
       <Setter Property="Foreground" Value="#FFEAEAEA"/>
       <Setter Property="Background" Value="#FF232B33"/>
       <Setter Property="BorderBrush" Value="#FF3A444E"/>
       <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Margin" Value="8"/>
+      <Setter Property="Margin" Value="4"/>
       <Setter Property="Focusable" Value="False"/>
       <Setter Property="Cursor" Value="Hand"/>
     </Style>
@@ -126,26 +126,21 @@ $xaml = @'
                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Border>
 
-    <!-- keypad -->
-    <Grid Grid.Row="2" Margin="120,10,120,10">
+    <!-- keyboard: digit row + QWERTY letters (rows generated below) -->
+    <!-- 20 half-width columns so the letter rows can stagger like a real keyboard -->
+    <Grid Grid.Row="2" Margin="30,10,30,10">
       <Grid.RowDefinitions>
         <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
       </Grid.RowDefinitions>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
+        <ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
+        <ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
+        <ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
+        <ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/>
       </Grid.ColumnDefinitions>
-      <Button x:Name="B7" Content="7" Style="{StaticResource PadBtn}" Grid.Row="0" Grid.Column="0"/>
-      <Button x:Name="B8" Content="8" Style="{StaticResource PadBtn}" Grid.Row="0" Grid.Column="1"/>
-      <Button x:Name="B9" Content="9" Style="{StaticResource PadBtn}" Grid.Row="0" Grid.Column="2"/>
-      <Button x:Name="B4" Content="4" Style="{StaticResource PadBtn}" Grid.Row="1" Grid.Column="0"/>
-      <Button x:Name="B5" Content="5" Style="{StaticResource PadBtn}" Grid.Row="1" Grid.Column="1"/>
-      <Button x:Name="B6" Content="6" Style="{StaticResource PadBtn}" Grid.Row="1" Grid.Column="2"/>
-      <Button x:Name="B1" Content="1" Style="{StaticResource PadBtn}" Grid.Row="2" Grid.Column="0"/>
-      <Button x:Name="B2" Content="2" Style="{StaticResource PadBtn}" Grid.Row="2" Grid.Column="1"/>
-      <Button x:Name="B3" Content="3" Style="{StaticResource PadBtn}" Grid.Row="2" Grid.Column="2"/>
-      <Button x:Name="BClr" Content="CLR" Style="{StaticResource PadBtn}" Grid.Row="3" Grid.Column="0" Background="#FF5A2B2B"/>
-      <Button x:Name="B0" Content="0" Style="{StaticResource PadBtn}" Grid.Row="3" Grid.Column="1"/>
-      <Button x:Name="BBack" Content="&#x232B;" Style="{StaticResource PadBtn}" Grid.Row="3" Grid.Column="2" Background="#FF4A4A2B"/>
+%KEYS%
+      <Button x:Name="BClr" Content="CLR" Style="{StaticResource PadBtn}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Background="#FF5A2B2B"/>
+      <Button x:Name="BBack" Content="&#x232B;" Style="{StaticResource PadBtn}" Grid.Row="3" Grid.Column="17" Grid.ColumnSpan="3" Background="#FF4A4A2B"/>
     </Grid>
 
     <!-- engrave button -->
@@ -160,6 +155,20 @@ $xaml = @'
   </Grid>
 </Window>
 '@
+
+# build the key rows: each key is 2 of the 20 grid columns wide, rows are centred so
+# the letter rows stagger like a real keyboard. Buttons are named B0..B9 and BA..BZ.
+$KeyRows = @('1234567890', 'QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM')
+$keysXaml = ''
+for ($r = 0; $r -lt $KeyRows.Count; $r++) {
+    $row = $KeyRows[$r]
+    $offset = (20 - 2 * $row.Length) / 2
+    for ($c = 0; $c -lt $row.Length; $c++) {
+        $ch = $row[$c]
+        $keysXaml += ('      <Button x:Name="B{0}" Content="{0}" Style="{{StaticResource PadBtn}}" Grid.Row="{1}" Grid.Column="{2}" Grid.ColumnSpan="2"/>' -f $ch, $r, ($offset + 2 * $c)) + "`r`n"
+    }
+}
+$xaml = $xaml.Replace('%KEYS%', $keysXaml)
 
 $window = [Windows.Markup.XamlReader]::Parse($xaml)
 if ($Fullscreen) {
@@ -196,7 +205,7 @@ function Update-Display { $NumDisplay.Text = $script:Entry }
 function Add-Digit([string]$d) {
     if ($script:Busy) { return }
     if ($script:FreshAfterEngrave) { $script:Entry = ''; $script:FreshAfterEngrave = $false }
-    if ($script:Entry.Length -lt $MaxDigits) { $script:Entry += $d; Update-Display }
+    if ($script:Entry.Length -lt $MaxChars) { $script:Entry += $d; Update-Display }
 }
 
 # lockout timer - re-enables input after the engrave cycle
@@ -223,7 +232,7 @@ function Start-Engrave {
         }
     }
     if ([string]::IsNullOrEmpty($script:Entry)) {
-        Set-Status 'TYPE A NUMBER FIRST' $ColOrange
+        Set-Status 'TYPE A KEY NUMBER FIRST' $ColOrange
         return
     }
     if (-not (Test-Path $TemplatePath)) {
@@ -267,11 +276,13 @@ function Start-Engrave {
     $LockTimer.Start()
 }
 
-# on-screen keypad wiring
-foreach ($i in 0..9) {
-    $btn = $window.FindName("B$i")
-    $d = "$i"
-    $btn.Add_Click({ Add-Digit $d }.GetNewClosure())
+# on-screen keyboard wiring (digits and letters)
+foreach ($row in $KeyRows) {
+    foreach ($ch in $row.ToCharArray()) {
+        $btn = $window.FindName("B$ch")
+        $d = "$ch"
+        $btn.Add_Click({ Add-Digit $d }.GetNewClosure())
+    }
 }
 $window.FindName('BClr').Add_Click({ if (-not $script:Busy) { $script:Entry = ''; Update-Display } })
 $window.FindName('BBack').Add_Click({
@@ -285,7 +296,16 @@ $BGo.Add_Click({ Start-Engrave })
 $window.Add_KeyDown({
     param($s, $e)
     $k = $e.Key.ToString()
+    $mods = [Windows.Input.Keyboard]::Modifiers
+    # hidden exit: Ctrl+Shift+X
+    if ($k -eq 'X' -and $mods -eq ([Windows.Input.ModifierKeys]::Control -bor [Windows.Input.ModifierKeys]::Shift)) {
+        $window.Close(); return
+    }
     if ($k -match '^(D|NumPad)([0-9])$') { Add-Digit $Matches[2]; return }
+    # letters always enter as capitals regardless of Caps Lock / Shift; ignore Ctrl/Alt chords
+    if ($k -match '^[A-Z]$' -and -not ($mods -band ([Windows.Input.ModifierKeys]::Control -bor [Windows.Input.ModifierKeys]::Alt))) {
+        Add-Digit $k; return
+    }
     switch ($k) {
         'Return' { Start-Engrave }
         'Enter'  { Start-Engrave }
@@ -295,11 +315,6 @@ $window.Add_KeyDown({
             }
         }
         'Escape' { if (-not $script:Busy) { $script:Entry = ''; Update-Display } }
-        'X' {
-            if ([Windows.Input.Keyboard]::Modifiers -eq ([Windows.Input.ModifierKeys]::Control -bor [Windows.Input.ModifierKeys]::Shift)) {
-                $window.Close()
-            }
-        }
     }
 })
 

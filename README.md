@@ -1,6 +1,6 @@
 # Key Engraver Kiosk
 
-Fullscreen keypad for the production team. They type a key number, press **ENGRAVE**
+Fullscreen keyboard for the production team. They type a key number (digits and/or letters), press **ENGRAVE**
 (or hit Enter), and the BSL fiber engraves it. LightBurn runs minimized in the
 background — operators never see it.
 
@@ -16,7 +16,7 @@ background — operators never see it.
 1. Open LightBurn with your fiber connected as normal.
 2. Put a key in your fixture. Create a **Text** object with the exact content `%KEYNUM%`
    (including the percent signs). Pick your font and size, position it on the key.
-   Tip: type `%8888888%`-style worst-case width first to check long numbers fit, then
+   Tip: type `%WWWWWWWW%`-style worst-case width first to check long codes fit, then
    set it back to `%KEYNUM%`.
 3. Set that layer to your production settings: **Speed 2000 mm/s, Power 100%, Frequency 30 kHz**
    (plus your usual pass count / hatch fill).
@@ -27,9 +27,10 @@ background — operators never see it.
 
 ## Operator flow
 
-- Type the number (physical numpad or on-screen buttons) → press **ENGRAVE** / Enter.
+- Type the key number (physical keyboard or on-screen buttons — digits and letters, letters always
+  come out as capitals) → press **ENGRAVE** / Enter.
 - Need another identical key? Just press **ENGRAVE** again — the number stays.
-- Typing a new digit after an engrave starts a fresh number automatically.
+- Typing a new character after an engrave starts a fresh number automatically.
 - CLR / ⌫ / Esc clear or edit the entry.
 - Footer shows a running count of keys engraved this session.
 
@@ -41,7 +42,7 @@ background — operators never see it.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `$MaxDigits` | 8 | Max digits an operator can enter |
+| `$MaxChars` | 8 | Max characters (digits + letters) an operator can enter |
 | `$ZeroPadTo` | 0 | e.g. `4` turns `37` into `0037` (0 = off) |
 | `$EngraveSeconds` | 8 | Input lockout while the job runs — set to your real cycle time + a second |
 | `$LoadDelayMs` | 800 | Pause between loading the file and starting the job |
