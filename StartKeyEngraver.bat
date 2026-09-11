@@ -16,4 +16,9 @@ rem give LightBurn time to boot and connect to the laser
 timeout /t 12 /nobreak >nul
 
 :kiosk
-powershell -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0KeyEngraver.ps1"
+rem console output (including any red PowerShell errors) is also saved to console.log
+powershell -STA -NoProfile -ExecutionPolicy Bypass -File "%~dp0KeyEngraver.ps1" > "%~dp0console.log" 2>&1
+type "%~dp0console.log"
+echo.
+echo Kiosk closed. Any errors above are also saved in console.log and engraver.log in this folder.
+pause

@@ -44,7 +44,9 @@ background — operators never see it.
 | `$MaxDigits` | 8 | Max digits an operator can enter |
 | `$ZeroPadTo` | 0 | e.g. `4` turns `37` into `0037` (0 = off) |
 | `$EngraveSeconds` | 8 | Input lockout while the job runs — set to your real cycle time + a second |
-| `$LoadDelayMs` | 1500 | Pause between loading the file and starting the job |
+| `$LoadDelayMs` | 800 | Pause between loading the file and starting the job |
+| `$LoadTimeoutMs` | 15000 | How long to wait for LightBurn to confirm it loaded the file (slow PCs need more) |
+| `$Fullscreen` | `$false` | `$true` for the borderless kiosk; `$false` for a normal window while troubleshooting |
 | `$LightBurnHost` | 127.0.0.1 | LightBurn PC (change if kiosk runs on a different machine) |
 
 ## Troubleshooting
@@ -54,6 +56,8 @@ background — operators never see it.
 - **"TEMPLATE.LBRN2 MISSING"** — save your template into this folder with that exact name.
 - **"TEMPLATE HAS NO %KEYNUM%"** — the text object in the template must literally read
   `%KEYNUM%`. Re-edit it and re-save.
+- **Console shows red errors** - they are saved to `console.log` (and `engraver.log`) in this folder; send those.
+- **Template was saved by a newer LightBurn** - open `template.lbrn2` in the LightBurn on the engraver PC and re-save it there, so the version matches.
 - **Job doesn't start after loading** — increase `$LoadDelayMs` to 2500.
 - **Laser fires before the operator is clear** — this kiosk starts the job immediately.
   Keep your interlocks/enclosure in place; if you want a "press twice to confirm" step,

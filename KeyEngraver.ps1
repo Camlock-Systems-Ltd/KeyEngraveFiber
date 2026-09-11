@@ -5,6 +5,8 @@
 # ============================================================
 
 # ------------------------- CONFIG ---------------------------
+# PowerShell 2.0 (stock Windows 7) has no $PSScriptRoot in scripts - derive it
+if (-not $PSScriptRoot) { $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path }
 $TemplatePath   = Join-Path $PSScriptRoot 'template.lbrn2'   # your LightBurn template containing the text %KEYNUM%
 $OutputPath     = Join-Path $PSScriptRoot 'current.lbrn2'    # generated file sent to LightBurn each engrave
 $Placeholder    = '%KEYNUM%'   # the literal text in your template that gets replaced
@@ -15,38 +17,66 @@ $MaxDigits      = 8            # max digits operators can type
 $ZeroPadTo      = 0            # e.g. 4 turns "37" into "0037"; 0 = disabled
 $EngraveSeconds = 8            # lockout time while the job runs (tune to your actual cycle time)
 $LoadDelayMs    = 800          # wait after FORCELOAD before START so LightBurn can render the file
+$ReplyTimeoutMs = 2000         # how long to wait for LightBurn to answer PING / START
+$LoadTimeoutMs  = 15000        # how long to wait for LightBurn to answer FORCELOAD (slow PCs take a while)
+$Fullscreen     = $false       # $true = borderless fullscreen kiosk, $false = normal window (for troubleshooting)
 $LogPath        = Join-Path $PSScriptRoot 'engraver.log'
 # Exit the kiosk with Ctrl+Shift+X (operators won't find it)
 # ------------------------------------------------------------
 
-Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
+function Write-Log([string]$msg) {
+    try { Add-Content -Path $LogPath -Value ("{0:yyyy-MM-dd HH:mm:ss.fff}  {1}" -f (Get-Date), $msg) } catch {}
+}
+
+Write-Log ("=== Kiosk starting.  PowerShell {0}  OS {1}  Folder {2}" -f $PSVersionTable.PSVersion, [Environment]::OSVersion.VersionString, $PSScriptRoot)
+
+# every PowerShell error also goes to engraver.log so it can be read after the console is gone
+trap {
+    Write-Log ("ERROR: {0}  (line {1})" -f $_.Exception.Message, $_.InvocationInfo.ScriptLineNumber)
+    continue
+}
+
+Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName PresentationCore
+Add-Type -AssemblyName WindowsBase
 
 # ----------------------- UDP helpers ------------------------
 $script:UdpOut = New-Object System.Net.Sockets.UdpClient
 $script:UdpIn  = $null
 try {
     $script:UdpIn = New-Object System.Net.Sockets.UdpClient $UdpReplyPort
-    $script:UdpIn.Client.ReceiveTimeout = 2000
 } catch {
     # port already taken (another kiosk instance?) - we can still send blind
+    Write-Log "WARNING: could not listen on UDP $UdpReplyPort - $($_.Exception.Message). Replies will not be received."
 }
 
-function Write-Log([string]$msg) {
-    try { Add-Content -Path $LogPath -Value ("{0:yyyy-MM-dd HH:mm:ss.fff}  {1}" -f (Get-Date), $msg) } catch {}
+function Clear-StaleReplies {
+    # throw away any reply that arrived late from an earlier command, so it can't be
+    # mistaken for the answer to the command we're about to send
+    if (-not $script:UdpIn) { return }
+    while ($script:UdpIn.Available -gt 0) {
+        try {
+            $ep = New-Object System.Net.IPEndPoint ([System.Net.IPAddress]::Any, 0)
+            $old = [System.Text.Encoding]::ASCII.GetString($script:UdpIn.Receive([ref]$ep))
+            Write-Log "Discarded stale reply '$old'"
+        } catch { break }
+    }
 }
 
 function Send-LB {
-    param([string]$Command, [switch]$WaitReply)
+    param([string]$Command, [switch]$WaitReply, [int]$TimeoutMs = $ReplyTimeoutMs)
+    Clear-StaleReplies
     $bytes = [System.Text.Encoding]::ASCII.GetBytes($Command)
     [void]$script:UdpOut.Send($bytes, $bytes.Length, $LightBurnHost, $UdpSendPort)
     if ($WaitReply -and $script:UdpIn) {
         try {
+            $script:UdpIn.Client.ReceiveTimeout = $TimeoutMs
             $ep = New-Object System.Net.IPEndPoint ([System.Net.IPAddress]::Any, 0)
             $reply = [System.Text.Encoding]::ASCII.GetString($script:UdpIn.Receive([ref]$ep))
             Write-Log "SENT '$Command' -> reply '$reply'"
             return $reply
         } catch {
-            Write-Log "SENT '$Command' -> NO REPLY (timeout)"
+            Write-Log "SENT '$Command' -> NO REPLY after ${TimeoutMs}ms ($($_.Exception.Message))"
             return $null
         }
     }
@@ -58,8 +88,8 @@ function Send-LB {
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Key Engraver" WindowStyle="None" WindowState="Maximized"
-        Topmost="True" Background="#FF101418" ResizeMode="NoResize">
+        Title="Key Engraver" Background="#FF101418" Width="1000" Height="800"
+        WindowStartupLocation="CenterScreen">
   <Window.Resources>
     <Style TargetType="Button" x:Key="PadBtn">
       <Setter Property="FontSize" Value="44"/>
@@ -97,7 +127,7 @@ $xaml = @'
     </Border>
 
     <!-- keypad -->
-    <Grid Grid.Row="2" Margin="220,10,220,10">
+    <Grid Grid.Row="2" Margin="120,10,120,10">
       <Grid.RowDefinitions>
         <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
       </Grid.RowDefinitions>
@@ -132,6 +162,12 @@ $xaml = @'
 '@
 
 $window = [Windows.Markup.XamlReader]::Parse($xaml)
+if ($Fullscreen) {
+    $window.WindowStyle = [Windows.WindowStyle]::None
+    $window.ResizeMode  = [Windows.ResizeMode]::NoResize
+    $window.Topmost     = $true
+    $window.WindowState = [Windows.WindowState]::Maximized
+}
 $StatusBar  = $window.FindName('StatusBar')
 $StatusText = $window.FindName('StatusText')
 $NumDisplay = $window.FindName('NumDisplay')
@@ -151,6 +187,8 @@ $ColRed    = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::Fr
 function Set-Status([string]$text, $brush) {
     $StatusText.Text = $text
     $StatusBar.Background = $brush
+    # force the UI to repaint now - the engrave path blocks the UI thread while it waits on LightBurn
+    try { $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Render, [Action]{}) } catch {}
 }
 
 function Update-Display { $NumDisplay.Text = $script:Entry }
@@ -190,6 +228,7 @@ function Start-Engrave {
     }
     if (-not (Test-Path $TemplatePath)) {
         Set-Status 'TEMPLATE.LBRN2 MISSING' $ColRed
+        Write-Log "Template not found at $TemplatePath"
         return
     }
 
@@ -212,13 +251,12 @@ function Start-Engrave {
     Write-Log "=== Engrave requested: $num ==="
 
     # hand the file to LightBurn - require a confirmed load before firing
-    $reply = Send-LB "FORCELOAD:$OutputPath" -WaitReply
-    if ($null -eq $reply) { $reply = Send-LB "FORCELOAD:$OutputPath" -WaitReply }  # one retry
+    $reply = Send-LB "FORCELOAD:$OutputPath" -WaitReply -TimeoutMs $LoadTimeoutMs
     if ($null -eq $reply) {
         $script:Busy = $false
         $script:Connected = $false
         Set-Status 'LIGHTBURN NOT RESPONDING - JOB NOT SENT' $ColRed
-        Write-Log 'FORCELOAD got no reply - job aborted, nothing fired'
+        Write-Log "FORCELOAD got no reply within ${LoadTimeoutMs}ms - job aborted, nothing fired. Check LightBurn for a popup dialog."
         return
     }
 
@@ -233,7 +271,7 @@ function Start-Engrave {
 foreach ($i in 0..9) {
     $btn = $window.FindName("B$i")
     $d = "$i"
-    $btn.Add_Click({ Add-Digit $this.Content }.GetNewClosure())
+    $btn.Add_Click({ Add-Digit $d }.GetNewClosure())
 }
 $window.FindName('BClr').Add_Click({ if (-not $script:Busy) { $script:Entry = ''; Update-Display } })
 $window.FindName('BBack').Add_Click({
@@ -266,21 +304,20 @@ $window.Add_KeyDown({
 })
 
 # startup: check LightBurn is alive
+$pingTimer = New-Object Windows.Threading.DispatcherTimer
+$pingTimer.Interval = [TimeSpan]::FromSeconds(3)
+$pingTimer.Add_Tick({
+    if ($null -ne (Send-LB 'PING' -WaitReply)) {
+        $pingTimer.Stop()
+        $script:Connected = $true
+        Set-Status 'READY' $ColGreen
+    }
+})
 $window.Add_ContentRendered({
     $reply = Send-LB 'PING' -WaitReply
     if ($null -eq $reply) {
         Set-Status 'WAITING FOR LIGHTBURN...' $ColOrange
-        # retry every 3s until it answers
-        $pingTimer = New-Object Windows.Threading.DispatcherTimer
-        $pingTimer.Interval = [TimeSpan]::FromSeconds(3)
-        $pingTimer.Add_Tick({
-            if ($null -ne (Send-LB 'PING' -WaitReply)) {
-                $this.Stop()
-                $script:Connected = $true
-                Set-Status 'READY' $ColGreen
-            }
-        })
-        $pingTimer.Start()
+        $pingTimer.Start()   # retry every 3s until it answers
     } else {
         $script:Connected = $true
         Set-Status 'READY' $ColGreen
@@ -290,3 +327,4 @@ $window.Add_ContentRendered({
 [void]$window.ShowDialog()
 if ($script:UdpIn) { $script:UdpIn.Close() }
 $script:UdpOut.Close()
+Write-Log '=== Kiosk closed ==='

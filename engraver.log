@@ -18,3 +18,5 @@
 2026-07-17 13:05:30.055  === Engrave requested: 77777777 ===
 2026-07-17 13:05:30.141  SENT 'FORCELOAD:C:\Users\zac.simmonds\Desktop\KeyEngraver\current.lbrn2' -> reply 'OK'
 2026-07-17 13:05:31.136  SENT 'START' -> reply 'OK'
+2026-09-11 09:34:36.744  === Kiosk starting.  PowerShell 5.1.26100.9168  OS Microsoft Windows NT 10.0.26200.0  Folder C:\Users\zac.simmonds\Desktop\Desktop\KeyEngraver\KeyEngraveFiber
+2026-09-11 09:34:37.542  SENT 'PING' -> reply 'OK'
