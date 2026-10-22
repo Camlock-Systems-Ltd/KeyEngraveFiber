@@ -49,7 +49,7 @@ To add, rename or reorder key types, edit the `$KeyTypes` list at the top of
 
 - Tap the **key type** (METAL / AXK / DELUXE GREEN / BLUE / RED) at the top — or press
   F1–F5. The chosen one lights up and stays selected until changed.
-- Type the key number (physical keyboard or on-screen buttons — digits and letters, letters always
+- Type the key number (physical keyboard or on-screen buttons — digits, letters and slash; letters always
   come out as capitals) → press **ENGRAVE** / Enter.
 - Need another identical key? Just press **ENGRAVE** again — the number and key type stay.
 - Typing a new character after an engrave starts a fresh number automatically.
@@ -64,7 +64,7 @@ To add, rename or reorder key types, edit the `$KeyTypes` list at the top of
 
 | Setting | Default | What it does |
 |---|---|---|
-| `$MaxChars` | 8 | Max characters (digits + letters) an operator can enter |
+| `$MaxChars` | 8 | Max characters (digits, letters, slash) an operator can enter |
 | `$ZeroPadTo` | 0 | e.g. `4` turns `37` into `0037` (0 = off) |
 | `$EngraveSeconds` | 8 | Input lockout while the job runs — set to your real cycle time + a second |
 | `$LoadDelayMs` | 800 | Pause between loading the file and starting the job |

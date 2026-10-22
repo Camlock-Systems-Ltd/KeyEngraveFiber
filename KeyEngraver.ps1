@@ -24,7 +24,7 @@ $Placeholder    = '%KEYNUM%'   # the literal text in your template that gets rep
 $LightBurnHost  = '127.0.0.1'  # PC running LightBurn (this PC)
 $UdpSendPort    = 19840        # LightBurn command port
 $UdpReplyPort   = 19841        # LightBurn reply port
-$MaxChars       = 8            # max characters (digits + letters) operators can type
+$MaxChars       = 8            # max characters (digits, letters, slash) operators can type
 $ZeroPadTo      = 0            # e.g. 4 turns "37" into "0037"; 0 = disabled
 $EngraveSeconds = 8            # lockout time while the job runs (tune to your actual cycle time)
 $LoadDelayMs    = 800          # wait after FORCELOAD before START so LightBurn can render the file
@@ -198,15 +198,17 @@ $xaml = @'
 '@
 
 # build the key rows: each key is 2 of the 20 grid columns wide, rows are centred so
-# the letter rows stagger like a real keyboard. Buttons are named B0..B9 and BA..BZ.
-$KeyRows = @('1234567890', 'QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM')
+# the letter rows stagger like a real keyboard. Buttons are named B0..B9, BA..BZ and BSlash.
+$KeyRows = @('1234567890', 'QWERTYUIOP', 'ASDFGHJKL/', 'ZXCVBNM')
+# x:Name must be an identifier, so punctuation keys get a word name
+function Get-KeyButtonName([string]$ch) { if ($ch -eq '/') { return 'BSlash' } else { return "B$ch" } }
 $keysXaml = ''
 for ($r = 0; $r -lt $KeyRows.Count; $r++) {
     $row = $KeyRows[$r]
     $offset = (20 - 2 * $row.Length) / 2
     for ($c = 0; $c -lt $row.Length; $c++) {
         $ch = $row[$c]
-        $keysXaml += ('      <Button x:Name="B{0}" Content="{0}" Style="{{StaticResource PadBtn}}" Grid.Row="{1}" Grid.Column="{2}" Grid.ColumnSpan="2"/>' -f $ch, $r, ($offset + 2 * $c)) + "`r`n"
+        $keysXaml += ('      <Button x:Name="{0}" Content="{1}" Style="{{StaticResource PadBtn}}" Grid.Row="{2}" Grid.Column="{3}" Grid.ColumnSpan="2"/>' -f (Get-KeyButtonName "$ch"), $ch, $r, ($offset + 2 * $c)) + "`r`n"
     }
 }
 $xaml = $xaml.Replace('%KEYS%', $keysXaml)
@@ -367,10 +369,10 @@ function Start-Engrave {
     $LockTimer.Start()
 }
 
-# on-screen keyboard wiring (digits and letters)
+# on-screen keyboard wiring (digits, letters and slash)
 foreach ($row in $KeyRows) {
     foreach ($ch in $row.ToCharArray()) {
-        $btn = $window.FindName("B$ch")
+        $btn = $window.FindName((Get-KeyButtonName "$ch"))
         $d = "$ch"
         $btn.Add_Click({ Add-Digit $d }.GetNewClosure())
     }
@@ -402,6 +404,8 @@ $window.Add_KeyDown({
     # F1..F12 pick a key type (F1 = first entry in $KeyTypes)
     if ($k -match '^F([0-9]+)$') { Select-KeyType ([int]$Matches[1] - 1); return }
     if ($k -match '^(D|NumPad)([0-9])$') { Add-Digit $Matches[2]; return }
+    # slash: the / key on the main keyboard (OemQuestion) or / on the numpad (Divide)
+    if ($k -eq 'OemQuestion' -or $k -eq 'Divide') { Add-Digit '/'; return }
     # letters always enter as capitals regardless of Caps Lock / Shift; ignore Ctrl/Alt chords
     if ($k -match '^[A-Z]$' -and -not ($mods -band ([Windows.Input.ModifierKeys]::Control -bor [Windows.Input.ModifierKeys]::Alt))) {
         Add-Digit $k; return
