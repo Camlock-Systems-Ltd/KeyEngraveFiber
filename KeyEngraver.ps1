@@ -7,7 +7,18 @@
 # ------------------------- CONFIG ---------------------------
 # PowerShell 2.0 (stock Windows 7) has no $PSScriptRoot in scripts - derive it
 if (-not $PSScriptRoot) { $PSScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path }
-$TemplatePath   = Join-Path $PSScriptRoot 'template.lbrn2'   # your LightBurn template containing the text %KEYNUM%
+# Key types - one LightBurn template per type, each saved in this folder with its own
+# power/speed/frequency settings and containing the text %KEYNUM%. The first entry is the
+# default selected when the kiosk opens. Label = button text, Colour = button colour when selected.
+# Add/remove/reorder entries freely; the buttons are generated from this list.
+$KeyTypes = @(
+    @{ Label = 'METAL';        File = 'template.lbrn2';              Colour = '#FF5A6572' },
+    @{ Label = 'AXK';          File = 'template-axk.lbrn2';          Colour = '#FF8A6A1E' },
+    @{ Label = 'DELUXE GREEN'; File = 'template-deluxe-green.lbrn2'; Colour = '#FF1E7A3C' },
+    @{ Label = 'DELUXE BLUE';  File = 'template-deluxe-blue.lbrn2';  Colour = '#FF1E4F8A' },
+    @{ Label = 'DELUXE RED';   File = 'template-deluxe-red.lbrn2';   Colour = '#FF8E2424' }
+)
+$TemplateDir    = $PSScriptRoot                              # folder holding the template files above
 $OutputPath     = Join-Path $PSScriptRoot 'current.lbrn2'    # generated file sent to LightBurn each engrave
 $Placeholder    = '%KEYNUM%'   # the literal text in your template that gets replaced
 $LightBurnHost  = '127.0.0.1'  # PC running LightBurn (this PC)
@@ -88,7 +99,7 @@ function Send-LB {
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Key Engraver" Background="#FF101418" Width="1000" Height="800"
+        Title="Key Engraver" Background="#FF101418" Width="1000" Height="900"
         WindowStartupLocation="CenterScreen">
   <Window.Resources>
     <Style TargetType="Button" x:Key="PadBtn">
@@ -102,10 +113,23 @@ $xaml = @'
       <Setter Property="Focusable" Value="False"/>
       <Setter Property="Cursor" Value="Hand"/>
     </Style>
+    <!-- key-type selector buttons: unselected look; the selected one is recoloured from code -->
+    <Style TargetType="Button" x:Key="TypeBtn">
+      <Setter Property="FontSize" Value="22"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="#FF8A95A0"/>
+      <Setter Property="Background" Value="#FF1A2026"/>
+      <Setter Property="BorderBrush" Value="#FF3A444E"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="Margin" Value="4"/>
+      <Setter Property="Focusable" Value="False"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
   </Window.Resources>
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="90"/>
+      <RowDefinition Height="100"/>
       <RowDefinition Height="200"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="150"/>
@@ -114,12 +138,29 @@ $xaml = @'
 
     <!-- status bar -->
     <Border x:Name="StatusBar" Grid.Row="0" Background="#FF1E7A3C">
-      <TextBlock x:Name="StatusText" Text="READY" Foreground="White" FontSize="46"
-                 FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+      <!-- Viewbox shrinks long messages (e.g. TEMPLATE MISSING) so they never run off the bar -->
+      <Viewbox StretchDirection="DownOnly" Margin="20,0">
+        <TextBlock x:Name="StatusText" Text="READY" Foreground="White" FontSize="46"
+                   FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+      </Viewbox>
     </Border>
 
+    <!-- key type selector (buttons generated below from $KeyTypes) -->
+    <Grid Grid.Row="1" Margin="30,12,30,0">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="22"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+%TYPECOLS%
+      </Grid.ColumnDefinitions>
+      <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="%TYPECOUNT%" Text="KEY TYPE"
+                 Foreground="#FF667380" FontSize="16" FontWeight="Bold" Margin="6,0,0,0"/>
+%TYPES%
+    </Grid>
+
     <!-- number display -->
-    <Border Grid.Row="1" Background="#FF0A0D10" Margin="30,20,30,10" CornerRadius="10"
+    <Border Grid.Row="2" Background="#FF0A0D10" Margin="30,10,30,10" CornerRadius="10"
             BorderBrush="#FF3A444E" BorderThickness="2">
       <TextBlock x:Name="NumDisplay" Text="" Foreground="#FF7FE07F" FontSize="120"
                  FontFamily="Consolas" FontWeight="Bold"
@@ -128,7 +169,7 @@ $xaml = @'
 
     <!-- keyboard: digit row + QWERTY letters (rows generated below) -->
     <!-- 20 half-width columns so the letter rows can stagger like a real keyboard -->
-    <Grid Grid.Row="2" Margin="30,10,30,10">
+    <Grid Grid.Row="3" Margin="30,10,30,10">
       <Grid.RowDefinitions>
         <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
       </Grid.RowDefinitions>
@@ -144,13 +185,13 @@ $xaml = @'
     </Grid>
 
     <!-- engrave button -->
-    <Button x:Name="BGo" Grid.Row="3" Margin="120,10,120,15" Focusable="False" Cursor="Hand"
+    <Button x:Name="BGo" Grid.Row="4" Margin="120,10,120,15" Focusable="False" Cursor="Hand"
             Background="#FF1E7A3C" BorderBrush="#FF2FA85A" BorderThickness="2">
       <TextBlock Text="ENGRAVE" Foreground="White" FontSize="60" FontWeight="Bold"/>
     </Button>
 
     <!-- footer -->
-    <TextBlock x:Name="Footer" Grid.Row="4" Text="Keys engraved: 0" Foreground="#FF667380"
+    <TextBlock x:Name="Footer" Grid.Row="5" Text="Keys engraved: 0" Foreground="#FF667380"
                FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
   </Grid>
 </Window>
@@ -170,6 +211,16 @@ for ($r = 0; $r -lt $KeyRows.Count; $r++) {
 }
 $xaml = $xaml.Replace('%KEYS%', $keysXaml)
 
+# build the key-type selector: one equal-width column and one button per entry in $KeyTypes.
+# Buttons are named BType0..BTypeN and keep their labels; colours are applied in Select-KeyType.
+$typeCols = ''
+$typesXaml = ''
+for ($i = 0; $i -lt $KeyTypes.Count; $i++) {
+    $typeCols  += "        <ColumnDefinition/>`r`n"
+    $typesXaml += ('      <Button x:Name="BType{0}" Content="{1}" Style="{{StaticResource TypeBtn}}" Grid.Row="1" Grid.Column="{0}"/>' -f $i, $KeyTypes[$i].Label) + "`r`n"
+}
+$xaml = $xaml.Replace('%TYPECOLS%', $typeCols).Replace('%TYPECOUNT%', "$($KeyTypes.Count)").Replace('%TYPES%', $typesXaml)
+
 $window = [Windows.Markup.XamlReader]::Parse($xaml)
 if ($Fullscreen) {
     $window.WindowStyle = [Windows.WindowStyle]::None
@@ -188,16 +239,53 @@ $script:Busy = $false
 $script:Count = 0
 $script:FreshAfterEngrave = $false
 $script:Connected = $false
+$script:TypeIndex = 0      # index into $KeyTypes of the currently selected key type
 
 $ColGreen  = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromRgb(0x1E,0x7A,0x3C))
 $ColOrange = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromRgb(0xB5,0x6A,0x1E))
 $ColRed    = New-Object Windows.Media.SolidColorBrush ([Windows.Media.Color]::FromRgb(0x8E,0x24,0x24))
+
+$BrushConv = New-Object Windows.Media.BrushConverter
+$TypeOffBg = $BrushConv.ConvertFromString('#FF1A2026')
+$TypeOffFg = $BrushConv.ConvertFromString('#FF8A95A0')
+$TypeOffBd = $BrushConv.ConvertFromString('#FF3A444E')
+$TypeButtons = @()
+for ($i = 0; $i -lt $KeyTypes.Count; $i++) { $TypeButtons += $window.FindName("BType$i") }
 
 function Set-Status([string]$text, $brush) {
     $StatusText.Text = $text
     $StatusBar.Background = $brush
     # force the UI to repaint now - the engrave path blocks the UI thread while it waits on LightBurn
     try { $window.Dispatcher.Invoke([Windows.Threading.DispatcherPriority]::Render, [Action]{}) } catch {}
+}
+
+function Get-KeyType { return $KeyTypes[$script:TypeIndex] }
+function Get-TemplatePath { return (Join-Path $TemplateDir (Get-KeyType).File) }
+
+function Select-KeyType([int]$index) {
+    if ($script:Busy) { return }
+    if ($index -lt 0 -or $index -ge $KeyTypes.Count) { return }
+    $script:TypeIndex = $index
+    for ($i = 0; $i -lt $KeyTypes.Count; $i++) {
+        $b = $TypeButtons[$i]
+        if ($i -eq $index) {
+            $b.Background  = $BrushConv.ConvertFromString($KeyTypes[$i].Colour)
+            $b.BorderBrush = [Windows.Media.Brushes]::White
+            $b.Foreground  = [Windows.Media.Brushes]::White
+        } else {
+            $b.Background  = $TypeOffBg
+            $b.BorderBrush = $TypeOffBd
+            $b.Foreground  = $TypeOffFg
+        }
+    }
+    $kt = Get-KeyType
+    Write-Log "Key type selected: $($kt.Label) ($($kt.File))"
+    if (-not (Test-Path (Get-TemplatePath))) {
+        # warn straight away so the operator doesn't find out at engrave time
+        Set-Status "$($kt.Label) TEMPLATE MISSING - SAVE $($kt.File)" $ColRed
+    } elseif ($script:Connected) {
+        Set-Status 'READY' $ColGreen
+    }
 }
 
 function Update-Display { $NumDisplay.Text = $script:Entry }
@@ -235,19 +323,22 @@ function Start-Engrave {
         Set-Status 'TYPE A KEY NUMBER FIRST' $ColOrange
         return
     }
+    $kt = Get-KeyType
+    $TemplatePath = Get-TemplatePath
     if (-not (Test-Path $TemplatePath)) {
-        Set-Status 'TEMPLATE.LBRN2 MISSING' $ColRed
-        Write-Log "Template not found at $TemplatePath"
+        Set-Status "$($kt.Label) TEMPLATE MISSING - SAVE $($kt.File)" $ColRed
+        Write-Log "Template for $($kt.Label) not found at $TemplatePath"
         return
     }
 
     $num = $script:Entry
     if ($ZeroPadTo -gt 0) { $num = $num.PadLeft($ZeroPadTo, '0') }
 
-    # build the job file from the template
+    # build the job file from the selected key type's template
     $content = [System.IO.File]::ReadAllText($TemplatePath)
     if ($content.IndexOf($Placeholder) -lt 0) {
-        Set-Status "TEMPLATE HAS NO $Placeholder" $ColRed
+        Set-Status "$($kt.File) HAS NO $Placeholder" $ColRed
+        Write-Log "Template $TemplatePath does not contain $Placeholder"
         return
     }
     $content = $content.Replace($Placeholder, $num)
@@ -255,9 +346,9 @@ function Start-Engrave {
 
     $script:Busy = $true
     $script:FreshAfterEngrave = $true
-    Set-Status "SENDING  $num" $ColOrange
+    Set-Status "SENDING  $num  ($($kt.Label))" $ColOrange
     $NumDisplay.Text = $num
-    Write-Log "=== Engrave requested: $num ==="
+    Write-Log "=== Engrave requested: $num  type=$($kt.Label)  template=$($kt.File) ==="
 
     # hand the file to LightBurn - require a confirmed load before firing
     $reply = Send-LB "FORCELOAD:$OutputPath" -WaitReply -TimeoutMs $LoadTimeoutMs
@@ -270,7 +361,7 @@ function Start-Engrave {
     }
 
     Start-Sleep -Milliseconds $LoadDelayMs
-    Set-Status "ENGRAVING  $num" $ColOrange
+    Set-Status "ENGRAVING  $num  ($($kt.Label))" $ColOrange
     [void](Send-LB 'START' -WaitReply)
 
     $LockTimer.Start()
@@ -292,6 +383,13 @@ $window.FindName('BBack').Add_Click({
 })
 $BGo.Add_Click({ Start-Engrave })
 
+# key-type selector wiring; the default (first entry) is highlighted at startup
+for ($i = 0; $i -lt $KeyTypes.Count; $i++) {
+    $idx = $i
+    $TypeButtons[$i].Add_Click({ Select-KeyType $idx }.GetNewClosure())
+}
+Select-KeyType 0
+
 # physical keyboard / numpad
 $window.Add_KeyDown({
     param($s, $e)
@@ -301,6 +399,8 @@ $window.Add_KeyDown({
     if ($k -eq 'X' -and $mods -eq ([Windows.Input.ModifierKeys]::Control -bor [Windows.Input.ModifierKeys]::Shift)) {
         $window.Close(); return
     }
+    # F1..F12 pick a key type (F1 = first entry in $KeyTypes)
+    if ($k -match '^F([0-9]+)$') { Select-KeyType ([int]$Matches[1] - 1); return }
     if ($k -match '^(D|NumPad)([0-9])$') { Add-Digit $Matches[2]; return }
     # letters always enter as capitals regardless of Caps Lock / Shift; ignore Ctrl/Alt chords
     if ($k -match '^[A-Z]$' -and -not ($mods -band ([Windows.Input.ModifierKeys]::Control -bor [Windows.Input.ModifierKeys]::Alt))) {
