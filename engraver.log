@@ -20,3 +20,6 @@
 2026-07-17 13:05:31.136  SENT 'START' -> reply 'OK'
 2026-09-11 09:34:36.744  === Kiosk starting.  PowerShell 5.1.26100.9168  OS Microsoft Windows NT 10.0.26200.0  Folder C:\Users\zac.simmonds\Desktop\Desktop\KeyEngraver\KeyEngraveFiber
 2026-09-11 09:34:37.542  SENT 'PING' -> reply 'OK'
+2026-09-11 09:50:11.210  === Kiosk starting.  PowerShell 5.1.26100.9168  OS Microsoft Windows NT 10.0.26200.0  Folder C:\Users\zac.simmonds\Desktop\Desktop\KeyEngraver\KeyEngraveFiber
+2026-09-11 09:50:11.790  SENT 'PING' -> reply 'OK'
+2026-09-11 09:50:29.705  === Kiosk closed ===
